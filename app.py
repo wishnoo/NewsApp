@@ -21,8 +21,8 @@ ACCESS_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 AUTHORIZATION_URL = 'https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent'
 AUTHORIZATION_SCOPE ='openid email profile'
 # AUTH_REDIRECT_URI = os.environ.get("REDIRECT_URI", default=False)
-AUTH_REDIRECT_URI = 'http://127.0.0.1:5000/oauth2callback' # one of the Redirect URIs from Google APIs console
-BASE_URI = 'http://127.0.0.1:5000'
+# AUTH_REDIRECT_URI = 'http://127.0.0.1:5000/oauth2callback' # one of the Redirect URIs from Google APIs console
+# BASE_URI = 'http://127.0.0.1:5000'
 AUTH_TOKEN_KEY = 'auth_token'
 AUTH_STATE_KEY = 'auth_state'
 USER_INFO_KEY = 'user_info'
@@ -32,11 +32,24 @@ app = Flask(__name__)
 app.secret_key = 'development key'
 
 # config MySQL
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'flaskdb'
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+if os.environ.get('ENV') == 'production': #Created an environmental variable in heruko named ENV
+    app.config['debug'] = False
+    app.config['MYSQL_HOST'] = 'us-cdbr-iron-east-02.cleardb.net'
+    app.config['MYSQL_USER'] = 'b49bf4e8ca29d1'
+    app.config['MYSQL_PASSWORD'] = 'fcded3ea'
+    app.config['MYSQL_DB'] = 'heroku_b4f7e73acc276ba'
+    app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+    AUTH_REDIRECT_URI = 'https://newsapp-heroku.herokuapp.com/oauth2callback' # one of the Redirect URIs from Google APIs console
+    BASE_URI = 'https://newsapp-heroku.herokuapp.com/'
+else:
+    app.config['debug'] = True
+    app.config['MYSQL_HOST'] = 'localhost'
+    app.config['MYSQL_USER'] = 'root'
+    app.config['MYSQL_PASSWORD'] = ''
+    app.config['MYSQL_DB'] = 'flaskdb'
+    app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+    AUTH_REDIRECT_URI = 'http://127.0.0.1:5000/oauth2callback' # one of the Redirect URIs from Google APIs console
+    BASE_URI = 'http://127.0.0.1:5000'
 
 #Init MySQL
 mysql = MySQL(app)
@@ -47,7 +60,8 @@ mysql = MySQL(app)
 # text = os.path.join("NewsApp", "text")
 
 # Use path function from python 3 to make the path compatible with the respective OS
-text = Path("C:\\Users\\STEALTH\\Documents\\Python\\Newsapp\\text")
+# text = Path("C:\\Users\\STEALTH\\Documents\\Python\\Newsapp\\text")
+text = Path("text")
 
 @app.route('/')
 def home():
@@ -56,7 +70,7 @@ def home():
     # data = r.json()
 
 
-    ----- retreive the data from the file that has the top news from news api
+    # ----- retreive the data from the file that has the top news from news api
     #with open(os.path.join(text, "news.txt"), "r") as file_x:
     file_to_open = text / "news.txt"
     with open(file_to_open) as file_x:
@@ -99,7 +113,7 @@ def category(id):
         print (category_file)
         # with open(os.path.join(text, category_file), "r") as file_c:
         file_to_open = text / category_file
-        with open(text / file_to_open) as file_c:
+        with open(file_to_open) as file_c:
             if file_c.mode == 'r':
                 contents = file_c.read()
                 data = json.loads(contents)
@@ -176,7 +190,25 @@ def authorized():
         user_info = get_user_info()
         session['email'] = user_info['email']
         print(session['email'])
+
+        if 'email' in session :
+            # database call start
+            #Intialize cursor
+            print("Email in session")
+            cur = mysql.connection.cursor()
+
+            cur.execute("INSERT IGNORE INTO users (email) VALUES (%s)", (session['email'],))
+
+            #Commit to DB
+            mysql.connection.commit()
+            print ('email inside getAccess function:', session['email'])
+            #Close the connection
+            cur.close()
+
         return redirect(url_for('home'), code=302)
+
+
+
 
         # email = getAccess(session['access_token'])
         # print('email outside the getAccess function:',email)
@@ -215,7 +247,7 @@ def receive():
     data = request.get_json(force=True)
     print (data)
 
-    if 'access_token' in session:
+    if is_logged_in():
         print("Inside receiver:",session['email'])
         session['url'] = data['data']
         email = session['email']
@@ -253,7 +285,7 @@ def receive():
 
 @app.route('/feedback',methods = ['POST'])
 def feedback():
-    if 'access_token' in session:
+    if is_logged_in():
         if 'like' not in request.form or 'relevant' not in request.form or 'novelty' not in request.form or 'readability' not in request.form or 'authority' not in request.form :
             flash('please give a valid input!!!', 'error')
             # return redirect(url_for('home'))
@@ -292,7 +324,7 @@ def timer():
     count = request.get_json(force=True)
     print (count)
 
-    if 'access_token' in session:
+    if is_logged_in():
         email = session['email']
         url = session['url']
         # database call start
@@ -394,4 +426,4 @@ def get_user_info():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
