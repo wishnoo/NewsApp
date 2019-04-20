@@ -1,24 +1,13 @@
+from apscheduler.schedulers.blocking import BlockingScheduler
 import requests
 import sys,os
 import json
 import datetime
 import time
-
-# Current utc time
-date_value = datetime.datetime.utcnow()
-i = 1
-# diff_in_s = 11
-# to assign a timedelta object we use the following statement
-# diff_in_m = datetime.timedelta(minutes=2)
-diff_in_m = 31
-# text = "C:\\Users\\STEALTH\\Documents\\Python\\Newsapp\\text"
 text = "text"
-# datetime.timedelta object cannot be compared with int and only with datetime.timedelta object
-# while diff_in_s > datetime.timedelta(seconds=10):
-
-#------ for the first loop to run we give diff_in_m as 31 and then in every iteration diff_in_m is set
-while diff_in_m > 30:
-
+# sched = BlockingScheduler()
+# @sched.scheduled_job('interval', minutes=30)
+def timed_job():
     top = open(os.path.join(text,"news.txt"), "w+")
     r = requests.get('https://newsapi.org/v2/top-headlines?country=us&apiKey=13ed18aed5aa424bb3afa52a4bfde4fe')
     data = r.json()
@@ -61,21 +50,14 @@ while diff_in_m > 30:
     technology.close()
 
     #<------ Update time print ------>
-    print("Updated on: ",datetime.datetime.now(),"- count:",i," !!!!")
-    i+=1;
-    date_value = datetime.datetime.utcnow()
-    # time.sleep(11)
-    # time.sleep(120)
-    time.sleep(1860)
-    temp = datetime.datetime.utcnow()
-    diff = temp - date_value
-    # diff_in_s = round(diff.total_seconds())
-    diff_in_m = round((diff.total_seconds())/60.0)
+    print("Updated on: ",datetime.datetime.now(),"!!!!")
 
-    #print on screen
-    if diff_in_m < 60:
-        print ("diff:",diff_in_m,"minutes")
-    elif diff_in_m == 60:
-        print("diff:",diff_in_m/60,"hour")
-    else:
-        print("diff:",diff_in_m/60,"hours")
+if __name__ == '__main__':
+    timed_job()
+    scheduler = BlockingScheduler()
+    scheduler.add_job(timed_job, 'interval', minutes=30)
+    print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        pass

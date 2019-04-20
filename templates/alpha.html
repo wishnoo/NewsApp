@@ -54,7 +54,11 @@
                             var diff = moment.duration(utcDate.diff(dates)).asHours();
                             // console.log(diff);
                             if (diff / 24.0 < 1){
-                              document.write(Math.round(diff)," Hours Ago")
+                              if diff == 1{
+                                document.write(Math.round(diff)," Hour Ago")
+                              } else {
+                                document.write(Math.round(diff)," Hours Ago")
+                              }
                             } else if (diff /24.0 > 1 && diff / 24.0 < 2) {
                               document.write("Yesterday")
                             } else {
